@@ -1,0 +1,25 @@
+{
+  "name": "@nself/nsentry-client",
+  "version": "0.1.0",
+  "description": "Typed API client for the ɳSentry REST API (api.sentry.nself.org or self-hosted) — monitors, incidents, status pages, API-key auth, offline mock",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./mock": "./src/mock.ts"
+  },
+  "private": false,
+  "license": "MIT",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@typescript-eslint/eslint-plugin": "^7.7.0",
+    "@typescript-eslint/parser": "^7.7.0",
+    "eslint": "^8.57.0",
+    "typescript": "^5.3.3",
+    "vitest": "^3.2.6"
+  }
+}
