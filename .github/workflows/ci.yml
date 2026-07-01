@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Lint + Typecheck + Test (client + mobile)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # @nself/* workspace packages live in nself-org/packages (private).
+      # pnpm-workspace.yaml links them via ../packages/@nself/* — GitHub Actions
+      # sandboxes checkouts under the workspace; check out into _nself_packages/
+      # then symlink to ../packages from the runner working tree. (Same pattern
+      # as nself-org/ntask ci.yml.)
+      - name: Checkout @nself packages
+        uses: actions/checkout@v4
+        with:
+          repository: nself-org/packages
+          token: ${{ secrets.NSELF_PACKAGES_TOKEN }}
+          path: _nself_packages
+
+      - name: Symlink packages to sibling path expected by pnpm workspace
+        run: |
+          PARENT_DIR="$(dirname "$GITHUB_WORKSPACE")"
+          ln -sfn "$GITHUB_WORKSPACE/_nself_packages" "$PARENT_DIR/packages"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.30.1'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Client — lint
+        working-directory: packages/client
+        run: pnpm lint
+      - name: Client — typecheck
+        working-directory: packages/client
+        run: pnpm typecheck
+      - name: Client — test
+        working-directory: packages/client
+        run: pnpm test
+
+      - name: Mobile — lint
+        working-directory: apps/mobile
+        run: pnpm lint
+      - name: Mobile — typecheck
+        working-directory: apps/mobile
+        run: pnpm typecheck
+      - name: Mobile — test
+        working-directory: apps/mobile
+        run: pnpm test
+
+  expo-export:
+    name: Expo bundle check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout @nself packages
+        uses: actions/checkout@v4
+        with:
+          repository: nself-org/packages
+          token: ${{ secrets.NSELF_PACKAGES_TOKEN }}
+          path: _nself_packages
+      - name: Symlink packages to sibling path
+        run: |
+          PARENT_DIR="$(dirname "$GITHUB_WORKSPACE")"
+          ln -sfn "$GITHUB_WORKSPACE/_nself_packages" "$PARENT_DIR/packages"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.30.1'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Expo export (iOS JS bundle — verifies the app graph compiles)
+        working-directory: apps/mobile
+        run: pnpm export:check

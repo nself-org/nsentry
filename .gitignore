@@ -1,0 +1,61 @@
+# =============================================================================
+# ENVIRONMENT & CREDENTIALS (never commit)
+# =============================================================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# =============================================================================
+# GENERATED FILES (ASI Layer-1 — nself build outputs contain secrets)
+# =============================================================================
+backend/docker-compose.yml
+backend/docker-compose.override.yml
+backend/docker-compose.*.yml
+*.generated.env
+**/*.gen.yml
+backend/.volumes/
+backend/logs/
+backend/ssl/
+backend/.nself/
+
+# =============================================================================
+# DEPENDENCIES & BUILD OUTPUT
+# =============================================================================
+node_modules/
+dist/
+build/
+coverage/
+.expo/
+.expo-shared/
+*.tsbuildinfo
+apps/mobile/android/
+apps/mobile/ios/
+apps/mobile/web-build/
+
+# =============================================================================
+# AI AGENT DIRECTORIES (private — never commit)
+# =============================================================================
+.claude/
+.ai/
+.opencode/
+
+# =============================================================================
+# OS / IDE
+# =============================================================================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+!.vscode/settings.json
+*.swp
+*.swo
+*~
+
+# =============================================================================
+# PLANNING & WORKING DOCUMENTS (local only)
+# =============================================================================
+TODO.md
+NOTES.md
+PLAN.md

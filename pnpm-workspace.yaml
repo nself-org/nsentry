@@ -1,0 +1,6 @@
+packages:
+  - 'apps/mobile'
+  - 'packages/*'
+  # @nself/* shared packages live in the sibling nself-org/packages repo.
+  # CI checks it out and symlinks it to ../packages (see .github/workflows/ci.yml).
+  - '../packages/@nself/*'
