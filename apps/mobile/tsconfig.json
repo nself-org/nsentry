@@ -1,0 +1,15 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@nself/nsentry-client": ["../../packages/client/src/index.ts"],
+      "@nself/nsentry-client/mock": ["../../packages/client/src/mock.ts"],
+      "@nself/auth-core": ["../../../packages/@nself/auth-core/src/index.ts"],
+      "@nself/errors": ["../../../packages/@nself/errors/src/index.ts"],
+      "@nself/sdk-core": ["../../../packages/@nself/sdk-core/src/index.ts"]
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "ɳSentry",
+    "slug": "nsentry",
+    "version": "0.1.0",
+    "runtimeVersion": { "policy": "sdkVersion" },
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "scheme": "nsentry",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "dev.nself.nsentry",
+      "infoPlist": {
+        "NSUserNotificationUsageDescription": "ɳSentry sends alerts when your monitors go down and incidents open."
+      }
+    },
+    "android": {
+      "package": "dev.nself.nsentry",
+      "permissions": ["NOTIFICATIONS"]
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        { "color": "#6366F1", "sounds": [], "mode": "production" }
+      ]
+    ],
+    "extra": {
+      "eas": { "projectId": "nsentry-mobile" }
+    }
+  }
+}

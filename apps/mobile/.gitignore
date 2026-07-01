@@ -1,0 +1,5 @@
+# Environment files — never commit these
+.env.local
+.env*.local
+
+# .env.example IS intentionally committed — it is the template for new devs
