@@ -22,19 +22,24 @@ jobs:
       # @nself/* workspace packages live in nself-org/packages (private).
       # pnpm-workspace.yaml links them via ../packages/@nself/* — GitHub Actions
       # sandboxes checkouts under the workspace; check out into _nself_packages/
-      # then symlink to ../packages from the runner working tree. (Same pattern
-      # as nself-org/ntask ci.yml.)
+      # then MOVE (not symlink) to ../packages so the layout physically mirrors
+      # local dev. A symlink breaks pnpm: it writes relative node_modules links
+      # (../../../../nsentry/node_modules/.pnpm/...) that resolve against the
+      # physical path inside the workspace and dangle — Metro/tsc then can't
+      # find the packages' own deps (@urql/core, wonka, react).
       - name: Checkout @nself packages
         uses: actions/checkout@v4
         with:
           repository: nself-org/packages
           token: ${{ secrets.NSELF_PACKAGES_TOKEN }}
           path: _nself_packages
+          persist-credentials: false
 
-      - name: Symlink packages to sibling path expected by pnpm workspace
+      - name: Move packages to sibling path expected by pnpm workspace
         run: |
           PARENT_DIR="$(dirname "$GITHUB_WORKSPACE")"
-          ln -sfn "$GITHUB_WORKSPACE/_nself_packages" "$PARENT_DIR/packages"
+          rm -rf "$PARENT_DIR/packages"
+          mv "$GITHUB_WORKSPACE/_nself_packages" "$PARENT_DIR/packages"
 
       - uses: pnpm/action-setup@v4
         with:
@@ -74,16 +79,19 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      # Move (not symlink) — see comment in the gate job above.
       - name: Checkout @nself packages
         uses: actions/checkout@v4
         with:
           repository: nself-org/packages
           token: ${{ secrets.NSELF_PACKAGES_TOKEN }}
           path: _nself_packages
-      - name: Symlink packages to sibling path
+          persist-credentials: false
+      - name: Move packages to sibling path
         run: |
           PARENT_DIR="$(dirname "$GITHUB_WORKSPACE")"
-          ln -sfn "$GITHUB_WORKSPACE/_nself_packages" "$PARENT_DIR/packages"
+          rm -rf "$PARENT_DIR/packages"
+          mv "$GITHUB_WORKSPACE/_nself_packages" "$PARENT_DIR/packages"
       - uses: pnpm/action-setup@v4
         with:
           version: '10.30.1'
