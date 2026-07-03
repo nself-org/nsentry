@@ -1,7 +1,8 @@
 /**
- * Purpose: Status pages tab — lists the tenant's status pages; tap → viewer.
- * Inputs: useApp().api.listStatusPages().
- * Outputs: FlatList of status pages with overall status.
+ * Purpose: Status pages tab — the tenant's status-page registry; tap → the
+ *          public viewer (same data visitors see).
+ * Inputs: useApp().api.listStatusPages() (live gateway contract — StatusPage[]).
+ * Outputs: FlatList of status pages with visibility badge.
  * Constraints: handles loading / error / empty states explicitly.
  */
 import {
@@ -16,7 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useApp } from '../lib/app-context';
 import { useFetch } from '../hooks/useFetch';
-import { colors, componentStatusColor, spacing } from '../theme';
+import { colors, spacing } from '../theme';
 import type { RootStackParamList } from '../types';
 
 export function StatusPagesScreen() {
@@ -28,7 +29,7 @@ export function StatusPagesScreen() {
     <View style={styles.container}>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <FlatList
-        data={data?.items ?? []}
+        data={data ?? []}
         keyExtractor={(p) => p.id}
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={() => void refresh()} tintColor={colors.text} />
@@ -39,12 +40,12 @@ export function StatusPagesScreen() {
             onPress={() => navigation.navigate('StatusPage', { slug: item.slug, name: item.name })}
             accessibilityRole="button"
           >
-            <View style={[styles.dot, { backgroundColor: componentStatusColor(item.overallStatus) }]} />
+            <View style={[styles.dot, { backgroundColor: item.public ? colors.up : colors.paused }]} />
             <View style={styles.rowBody}>
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.slug}>/s/{item.slug}</Text>
             </View>
-            <Text style={styles.status}>{item.overallStatus.replace('_', ' ')}</Text>
+            <Text style={styles.status}>{item.public ? 'public' : 'unlisted'}</Text>
           </TouchableOpacity>
         )}
         ListEmptyComponent={

@@ -363,18 +363,18 @@ importers:
 
   apps/mobile:
     dependencies:
-      '@nself/auth-core':
-        specifier: workspace:*
-        version: link:../../../packages/@nself/auth-core
       '@nself/errors':
         specifier: workspace:*
         version: link:../../../packages/@nself/errors
+      '@nself/native-bridge':
+        specifier: workspace:*
+        version: link:../../../packages/@nself/native-bridge
       '@nself/nsentry-client':
         specifier: workspace:*
         version: link:../../packages/client
-      '@nself/sdk-core':
+      '@nself/push-client':
         specifier: workspace:*
-        version: link:../../../packages/@nself/sdk-core
+        version: link:../../../packages/@nself/push-client
       '@react-navigation/bottom-tabs':
         specifier: ^6.6.1
         version: 6.6.1(@react-navigation/native@6.1.18(react-native@0.79.7(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native-safe-area-context@5.8.0(react-native@0.79.7(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native-screens@3.35.0(react-native@0.79.7(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0))(react-native@0.79.7(@babel/core@7.29.7)(@types/react@19.0.14)(react@19.0.0))(react@19.0.0)

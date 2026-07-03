@@ -1,8 +1,11 @@
 /**
- * Purpose: Monitor detail — uptime stats, pause/resume, recent check results.
+ * Purpose: Monitor detail — status, interval, pause/resume, recent probe
+ *          results.
  * Inputs: route params { monitorId }; useApp().api.
  * Outputs: detail card + checks list; pause/resume mutations.
- * Constraints: mutations refresh the monitor after completing.
+ * Constraints: mutations refresh the monitor after completing. The checks
+ *   route is rolling out on the SaaS gateway — a 404 renders as "check
+ *   history is coming online" (isComingOnline), never an error or crash.
  */
 import { useState } from 'react';
 import {
@@ -15,7 +18,7 @@ import {
   View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { CheckResult } from '@nself/nsentry-client';
+import { isComingOnline, NsentryApiError, type MonitorCheck } from '@nself/nsentry-client';
 import { useApp } from '../lib/app-context';
 import { useFetch } from '../hooks/useFetch';
 import { colors, monitorStatusColor, spacing } from '../theme';
@@ -23,16 +26,12 @@ import type { RootStackParamList } from '../types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MonitorDetail'>;
 
-const pct = (v: number | null): string => (v === null ? '—' : `${(v * 100).toFixed(2)}%`);
-
-function CheckRow({ check }: { check: CheckResult }) {
+function CheckRow({ check }: { check: MonitorCheck }) {
   return (
     <View style={styles.checkRow}>
-      <View style={[styles.dot, { backgroundColor: check.ok ? colors.up : colors.down }]} />
-      <Text style={styles.checkRegion}>{check.region}</Text>
-      <Text style={styles.checkMeta}>
-        {check.ok ? `${check.statusCode} · ${check.latencyMs} ms` : (check.error ?? 'failed')}
-      </Text>
+      <View style={[styles.dot, { backgroundColor: check.status === 'up' ? colors.up : colors.down }]} />
+      <Text style={styles.checkStatus}>{check.status}</Text>
+      <Text style={styles.checkMeta}>{check.latencyMs !== null ? `${check.latencyMs} ms` : '—'}</Text>
       <Text style={styles.checkTime}>{new Date(check.checkedAt).toLocaleTimeString()}</Text>
     </View>
   );
@@ -44,7 +43,15 @@ export function MonitorDetailScreen({ route }: Props) {
   const [mutating, setMutating] = useState(false);
 
   const monitorQ = useFetch(() => api.getMonitor(monitorId), [api, monitorId]);
-  const checksQ = useFetch(() => api.listChecks(monitorId, { limit: 25 }), [api, monitorId]);
+  // Rolling out on the SaaS: swallow "coming online" into an empty-but-flagged state.
+  const checksQ = useFetch<{ checks: MonitorCheck[]; comingOnline: boolean }>(async () => {
+    try {
+      return { checks: await api.listChecks(monitorId, { limit: 25 }), comingOnline: false };
+    } catch (e) {
+      if (isComingOnline(e)) return { checks: [], comingOnline: true };
+      throw e;
+    }
+  }, [api, monitorId]);
 
   const monitor = monitorQ.data;
 
@@ -55,6 +62,9 @@ export function MonitorDetailScreen({ route }: Props) {
       if (monitor.status === 'paused') await api.resumeMonitor(monitor.id);
       else await api.pauseMonitor(monitor.id);
       await monitorQ.refresh();
+    } catch (e) {
+      // Mutation failures surface via the next refresh; never crash the screen.
+      if (__DEV__ && e instanceof NsentryApiError) console.warn('[MonitorDetail]', e.code);
     } finally {
       setMutating(false);
     }
@@ -94,30 +104,24 @@ export function MonitorDetailScreen({ route }: Props) {
         <Text style={styles.url}>{monitor.url}</Text>
         <View style={styles.statsRow}>
           <View style={styles.stat}>
-            <Text style={styles.statValue}>{pct(monitor.uptime24h)}</Text>
-            <Text style={styles.statLabel}>24h uptime</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{pct(monitor.uptime30d)}</Text>
-            <Text style={styles.statLabel}>30d uptime</Text>
-          </View>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>
-              {monitor.latencyP50Ms !== null ? `${monitor.latencyP50Ms} ms` : '—'}
-            </Text>
-            <Text style={styles.statLabel}>p50 latency</Text>
+            <Text style={styles.statValue}>{monitor.kind.toUpperCase()}</Text>
+            <Text style={styles.statLabel}>probe</Text>
           </View>
           <View style={styles.stat}>
             <Text style={styles.statValue}>{monitor.intervalSeconds}s</Text>
             <Text style={styles.statLabel}>interval</Text>
+          </View>
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>{new Date(monitor.createdAt).toLocaleDateString()}</Text>
+            <Text style={styles.statLabel}>since</Text>
           </View>
         </View>
       </View>
 
       <Text style={styles.sectionTitle}>Recent checks</Text>
       <FlatList
-        data={checksQ.data?.items ?? []}
-        keyExtractor={(c) => c.id}
+        data={checksQ.data?.checks ?? []}
+        keyExtractor={(c, i) => `${c.checkedAt}_${i}`}
         refreshControl={
           <RefreshControl
             refreshing={checksQ.loading}
@@ -127,7 +131,13 @@ export function MonitorDetailScreen({ route }: Props) {
         }
         renderItem={({ item }) => <CheckRow check={item} />}
         ListEmptyComponent={
-          !checksQ.loading ? <Text style={styles.empty}>No checks recorded yet.</Text> : null
+          !checksQ.loading ? (
+            <Text style={styles.empty}>
+              {checksQ.data?.comingOnline
+                ? 'Check history is coming online for this endpoint — the monitor is still probing.'
+                : (checksQ.error ?? 'No checks recorded yet.')}
+            </Text>
+          ) : null
         }
         contentContainerStyle={styles.list}
       />
@@ -176,7 +186,7 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     marginBottom: spacing.xs,
   },
-  checkRegion: { color: colors.text, width: 90, fontSize: 12 },
+  checkStatus: { color: colors.text, width: 60, fontSize: 12, textTransform: 'uppercase' },
   checkMeta: { color: colors.textMuted, flex: 1, fontSize: 12 },
   checkTime: { color: colors.textMuted, fontSize: 11 },
   empty: { color: colors.textMuted, textAlign: 'center', marginTop: spacing.lg },

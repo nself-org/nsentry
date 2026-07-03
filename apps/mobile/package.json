@@ -15,10 +15,10 @@
     "ci:local": "pnpm lint && pnpm typecheck && pnpm test"
   },
   "dependencies": {
-    "@nself/auth-core": "workspace:*",
     "@nself/errors": "workspace:*",
+    "@nself/native-bridge": "workspace:*",
     "@nself/nsentry-client": "workspace:*",
-    "@nself/sdk-core": "workspace:*",
+    "@nself/push-client": "workspace:*",
     "@react-navigation/bottom-tabs": "^6.6.1",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.11.0",

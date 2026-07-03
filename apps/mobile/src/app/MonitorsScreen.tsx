@@ -1,8 +1,9 @@
 /**
- * Purpose: Monitors list — status dot, uptime, latency; pull-to-refresh;
+ * Purpose: Monitors list — status dot, check interval; pull-to-refresh;
  *          tap → MonitorDetail.
- * Inputs: useApp().api.listMonitors().
- * Outputs: FlatList of monitors.
+ * Inputs: useApp().api.listMonitors() (live gateway contract — Monitor[]).
+ * Outputs: FlatList of monitors; local down-alert fallback on up→down
+ *          transitions while server push is pending (useDownAlertFallback).
  * Constraints: handles loading / error / empty states explicitly.
  */
 import {
@@ -18,10 +19,9 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Monitor } from '@nself/nsentry-client';
 import { useApp } from '../lib/app-context';
 import { useFetch } from '../hooks/useFetch';
+import { useDownAlertFallback } from '../hooks/useDownAlertFallback';
 import { colors, monitorStatusColor, spacing } from '../theme';
 import type { RootStackParamList } from '../types';
-
-const pct = (v: number | null): string => (v === null ? '—' : `${(v * 100).toFixed(2)}%`);
 
 function MonitorRow({ monitor, onPress }: { monitor: Monitor; onPress: () => void }) {
   return (
@@ -34,25 +34,26 @@ function MonitorRow({ monitor, onPress }: { monitor: Monitor; onPress: () => voi
         </Text>
       </View>
       <View style={styles.rowMeta}>
-        <Text style={styles.metaMain}>{pct(monitor.uptime24h)}</Text>
-        <Text style={styles.metaSub}>
-          {monitor.latencyP50Ms !== null ? `${monitor.latencyP50Ms} ms` : monitor.status}
-        </Text>
+        <Text style={styles.metaMain}>{monitor.status.toUpperCase()}</Text>
+        <Text style={styles.metaSub}>every {monitor.intervalSeconds}s</Text>
       </View>
     </TouchableOpacity>
   );
 }
 
 export function MonitorsScreen() {
-  const { api } = useApp();
+  const { api, auth, push } = useApp();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { data, loading, error, refresh } = useFetch(() => api.listMonitors(), [api]);
+
+  // Local notification when a refresh reveals up→down and server push isn't live.
+  useDownAlertFallback({ monitors: data, pushState: push, enabled: !auth.isDemo });
 
   return (
     <View style={styles.container}>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <FlatList
-        data={data?.items ?? []}
+        data={data ?? []}
         keyExtractor={(m) => m.id}
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={() => void refresh()} tintColor={colors.text} />

@@ -21,12 +21,21 @@ import { useFetch } from '../hooks/useFetch';
 import { normalizeUrl } from '../lib/config';
 import { colors, spacing } from '../theme';
 
+const PUSH_LABEL: Record<string, string> = {
+  idle: '—',
+  registered: 'Registered for down alerts',
+  coming_soon: 'Push alerts coming soon',
+  permission_denied: 'Enable notifications in system settings',
+  unavailable: 'Unavailable on this device',
+};
+
 export function SettingsScreen() {
-  const { api, auth } = useApp();
+  const { api, auth, push } = useApp();
   const [customUrl, setCustomUrl] = useState(auth.endpoint?.customUrl ?? '');
 
   const tenantQ = useFetch(() => api.me(), [api]);
   const tenant = tenantQ.data;
+  const monitorsQuota = tenant?.quotas.monitors;
 
   const switchEndpoint = (mode: 'saas' | 'custom') => {
     const url = mode === 'custom' ? normalizeUrl(customUrl) : null;
@@ -68,12 +77,12 @@ export function SettingsScreen() {
       <View style={styles.card}>
         {tenant ? (
           <>
-            <Row label="Tenant" value={tenant.name} />
+            <Row label="Account" value={tenant.email} />
             <Row label="Tier" value={tenant.tier} />
-            <Row
-              label="Quota"
-              value={`${tenant.quotas.monitors} monitors @ ${tenant.quotas.minIntervalSeconds}s`}
-            />
+            {monitorsQuota ? (
+              <Row label="Monitors" value={`${monitorsQuota.used} / ${monitorsQuota.limit}`} />
+            ) : null}
+            {!auth.isDemo ? <Row label="Push alerts" value={PUSH_LABEL[push] ?? push} /> : null}
           </>
         ) : (
           <Text style={styles.muted}>{tenantQ.error ?? 'Loading tenant…'}</Text>

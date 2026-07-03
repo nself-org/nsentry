@@ -8,8 +8,9 @@
 export type RootStackParamList = {
   Login: undefined;
   Main: undefined;
-  MonitorDetail: { monitorId: string; name: string };
-  StatusPage: { slug: string; name: string };
+  /** name is optional — push deep-links (nsentry://monitor/{id}) carry only the id. */
+  MonitorDetail: { monitorId: string; name?: string };
+  StatusPage: { slug: string; name?: string };
 };
 
 export type TabParamList = {

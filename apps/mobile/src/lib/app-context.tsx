@@ -7,10 +7,13 @@
 import { createContext, useContext } from 'react';
 import type { NsentryClient } from '@nself/nsentry-client';
 import type { UseAuthResult } from '../hooks/useAuth';
+import type { PushState } from '../hooks/usePushToken';
 
 export interface AppContextValue {
   api: NsentryClient;
   auth: UseAuthResult;
+  /** Down-alert push registration state (Settings surfaces 'coming_soon'). */
+  push: PushState;
 }
 
 export const AppContext = createContext<AppContextValue | null>(null);

@@ -37,6 +37,7 @@ const config = {
     '^(\\.{1,2}/.*)\\.js$': '$1',
     // Native modules not available in Jest (no native build) — manual mocks
     '^expo-secure-store$': '<rootDir>/__mocks__/expo-secure-store.js',
+    '^expo-notifications$': '<rootDir>/__mocks__/expo-notifications.js',
   },
 };
 

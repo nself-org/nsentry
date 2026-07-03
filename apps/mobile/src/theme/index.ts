@@ -4,7 +4,7 @@
  * Outputs: colors, spacing, statusColor() helper.
  * Constraints: dark-first per nSelf brand; status colors meet WCAG AA on bg.
  */
-import type { ComponentStatus, IncidentSeverity, MonitorStatus } from '@nself/nsentry-client';
+import type { IncidentSeverity, MonitorStatus, PublicComponentStatus } from '@nself/nsentry-client';
 
 export const colors = {
   bg: '#030712',
@@ -13,7 +13,8 @@ export const colors = {
   border: '#374151',
   text: '#F9FAFB',
   textMuted: '#9CA3AF',
-  primary: '#6366F1',
+  /** nSelf brand blue — matches the app icon/splash mark. */
+  primary: '#5B9DFF',
   up: '#34D399',
   down: '#F87171',
   degraded: '#FBBF24',
@@ -36,8 +37,6 @@ export function monitorStatusColor(status: MonitorStatus): string {
       return colors.up;
     case 'down':
       return colors.down;
-    case 'degraded':
-      return colors.degraded;
     case 'paused':
       return colors.paused;
     case 'pending':
@@ -45,18 +44,17 @@ export function monitorStatusColor(status: MonitorStatus): string {
   }
 }
 
-/** Color for a status-page component status. */
-export function componentStatusColor(status: ComponentStatus): string {
+/** Color for a public status-page component/overall status. */
+export function componentStatusColor(status: PublicComponentStatus): string {
   switch (status) {
     case 'operational':
       return colors.up;
     case 'degraded':
-    case 'maintenance':
       return colors.degraded;
-    case 'partial_outage':
-      return colors.degraded;
-    case 'major_outage':
+    case 'down':
       return colors.down;
+    case 'unknown':
+      return colors.paused;
   }
 }
 

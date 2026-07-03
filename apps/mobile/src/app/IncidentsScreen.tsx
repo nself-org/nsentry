@@ -30,7 +30,6 @@ function IncidentCard({
   onResolve: () => void;
   busy: boolean;
 }) {
-  const lastUpdate = incident.updates.at(-1);
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -40,12 +39,10 @@ function IncidentCard({
         <Text style={styles.cardStatus}>{incident.status}</Text>
       </View>
       <Text style={styles.cardTitle}>{incident.title}</Text>
-      {lastUpdate ? (
-        <Text style={styles.cardUpdate} numberOfLines={2}>
-          {lastUpdate.message}
-        </Text>
-      ) : null}
       <Text style={styles.cardTime}>Started {new Date(incident.startedAt).toLocaleString()}</Text>
+      {incident.resolvedAt ? (
+        <Text style={styles.cardTime}>Resolved {new Date(incident.resolvedAt).toLocaleString()}</Text>
+      ) : null}
       {incident.status !== 'resolved' && (
         <View style={styles.actions}>
           {incident.status === 'open' && (
@@ -92,7 +89,7 @@ export function IncidentsScreen() {
     <View style={styles.container}>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <FlatList
-        data={data?.items ?? []}
+        data={data ?? []}
         keyExtractor={(i) => i.id}
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={() => void refresh()} tintColor={colors.text} />
