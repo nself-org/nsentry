@@ -1,16 +1,17 @@
 /**
- * @nself/nsentry-client — API contract types.
+ * @nself/nsentry-client — API contract types (view models).
  *
- * Purpose: Typed shapes for the ɳSentry REST API v1 (api.sentry.nself.org and
- *          self-hosted Sentry Bundle deployments — same contract, per the
- *          self-host-parity promise).
+ * Purpose: Typed shapes the app consumes. The live gateway
+ *          (api.sentry.nself.org and self-hosted Sentry Bundle deployments —
+ *          same contract per the self-host-parity promise) speaks enveloped
+ *          snake_case JSON; wire.ts converts wire payloads into these
+ *          camelCase view models.
  * Inputs:  None — pure type declarations.
- * Outputs: Monitor / CheckResult / Incident / StatusPage / TenantInfo types.
+ * Outputs: Monitor / MonitorCheck / Incident / StatusPage / PublicStatusPage /
+ *          TenantInfo / LoginSession / Overview types.
  * Constraints:
- *   - Contract source of truth: nself/.claude/docs/nsentry-saas-plan.md §4
- *     (monitors / incidents / status-pages / API-key auth). Field names follow
- *     the Sentry Bundle plugin API (nself-uptime-monitor, nself-incident-mgmt,
- *     nself-status-page).
+ *   - Contract source of truth: plugins-pro/paid/nself-saas-gateway handlers_*
+ *     (the same wire contract the web SPA's saas-mapping.ts consumes).
  *   - All timestamps are ISO-8601 strings (UTC).
  * SPORT: F13-CROSS-REPO-DEPS — @nself/nsentry-client (nsentry repo)
  */
@@ -18,76 +19,59 @@
 /** Subscription tier of a tenant — mirrors the SaaS quota table. */
 export type TenantTier = 'free' | 'bundle' | 'plus';
 
-/** Health status of a monitor. */
-export type MonitorStatus = 'up' | 'down' | 'degraded' | 'paused' | 'pending';
+/** Health status of a monitor (gateway wire values). */
+export type MonitorStatus = 'up' | 'down' | 'paused' | 'pending';
 
-/** Incident lifecycle status (nself-incident-mgmt). */
+/** Incident lifecycle status (gateway folds "mitigating" into "acknowledged"). */
 export type IncidentStatus = 'open' | 'acknowledged' | 'resolved';
 
-/** Incident severity. */
+/** Incident severity. Unknown wire values normalize to 'minor'. */
 export type IncidentSeverity = 'critical' | 'major' | 'minor' | 'info';
 
-/** Status-page component health. */
-export type ComponentStatus = 'operational' | 'degraded' | 'partial_outage' | 'major_outage' | 'maintenance';
+/** Public status-page component health. */
+export type PublicComponentStatus = 'operational' | 'degraded' | 'down' | 'unknown';
 
-/** HTTP methods supported by uptime checks. */
-export type CheckMethod = 'GET' | 'HEAD' | 'POST';
+/** Public status-page overall health. */
+export type PublicOverallStatus = 'operational' | 'degraded' | 'down';
 
-/** An uptime monitor (nself-uptime-monitor). */
+/** An uptime monitor (GET /v1/monitors). */
 export interface Monitor {
   id: string;
   name: string;
   url: string;
-  method: CheckMethod;
-  /** Check interval in seconds — floor enforced per tier (300/60/30). */
+  /** Probe kind, e.g. "https" | "http" (gateway `kind`). */
+  kind: string;
   intervalSeconds: number;
-  timeoutMs: number;
   status: MonitorStatus;
-  /** Check regions, e.g. ["eu-central", "us-east"]. */
-  regions: string[];
-  lastCheckAt: string | null;
-  /** Rolling uptime ratios, 0..1. */
-  uptime24h: number | null;
-  uptime30d: number | null;
-  /** Median latency over the last 24h, milliseconds. */
-  latencyP50Ms: number | null;
+  paused: boolean;
   createdAt: string;
 }
 
-/** Input to create a monitor. */
+/** Input to create a monitor (POST /v1/monitors). */
 export interface CreateMonitorInput {
   name: string;
   url: string;
-  method?: CheckMethod;
+  /** Defaults to "https"/"http" derived from the URL when omitted. */
+  kind?: string;
   intervalSeconds?: number;
-  timeoutMs?: number;
-  regions?: string[];
 }
 
-/** Partial update of a monitor. */
-export type UpdateMonitorInput = Partial<CreateMonitorInput>;
+/** Partial update of a monitor (PATCH /v1/monitors/{id}). */
+export interface UpdateMonitorInput {
+  name?: string;
+  url?: string;
+  intervalSeconds?: number;
+  paused?: boolean;
+}
 
-/** A single check result for a monitor. */
-export interface CheckResult {
-  id: string;
-  monitorId: string;
-  region: string;
-  ok: boolean;
-  statusCode: number | null;
-  latencyMs: number | null;
+/** A probe result (GET /v1/monitors/{id}/checks — rolling out on the SaaS). */
+export interface MonitorCheck {
   checkedAt: string;
-  error: string | null;
+  status: 'up' | 'down';
+  latencyMs: number | null;
 }
 
-/** A timeline entry on an incident. */
-export interface IncidentUpdate {
-  id: string;
-  status: IncidentStatus;
-  message: string;
-  createdAt: string;
-}
-
-/** An incident (nself-incident-mgmt). */
+/** An incident (GET /v1/incidents). */
 export interface Incident {
   id: string;
   /** Linked monitor, when the incident was auto-opened by a failed check. */
@@ -98,47 +82,78 @@ export interface Incident {
   startedAt: string;
   acknowledgedAt: string | null;
   resolvedAt: string | null;
-  updates: IncidentUpdate[];
 }
 
-/** A component shown on a status page. */
-export interface StatusPageComponent {
-  id: string;
-  name: string;
-  status: ComponentStatus;
-}
-
-/** A status page (nself-status-page). */
+/** A status-page registry entry (GET /v1/status-pages). */
 export interface StatusPage {
   id: string;
-  /** URL slug — public page at sentry.nself.org/s/<slug> (SaaS) or /s/<slug> self-host. */
-  slug: string;
   name: string;
-  overallStatus: ComponentStatus;
-  components: StatusPageComponent[];
-  /** Uptime ratio 0..1 over the trailing 90 days, per the page's monitors. */
-  uptime90d: number | null;
+  /** Public page at /v1/status/public/{slug} + status.<domain>/s/{slug}. */
+  slug: string;
+  /** Public URL of the rendered page. */
+  url: string;
+  public: boolean;
+  createdAt: string;
 }
 
-/** Tier quota snapshot returned by /v1/me. */
-export interface TenantQuotas {
-  monitors: number;
-  minIntervalSeconds: number;
-  statusPages: number;
-  retentionDays: number;
-  seats: number;
+/** A component on the PUBLIC status page (unauthenticated view). */
+export interface PublicStatusComponent {
+  id: string;
+  name: string;
+  status: PublicComponentStatus;
+  /** Recent uptime %, null before any probe has completed. */
+  uptimePercent: number | null;
 }
 
-/** The authenticated tenant (from API key or JWT tenant claim). */
+/** The public status page (GET /v1/status/public/{slug} — unauthenticated). */
+export interface PublicStatusPage {
+  title: string;
+  slug: string;
+  overallStatus: PublicOverallStatus;
+  components: PublicStatusComponent[];
+  incidents: Array<{ title: string; status: string; startedAt: string }>;
+  generatedAt?: string;
+}
+
+/** Quota usage for one dimension (used/limit). */
+export interface QuotaUsage {
+  used: number;
+  limit: number;
+}
+
+/** The authenticated tenant (GET /v1/me). Quota dims include "monitors",
+ *  "status_pages", "error_events_month", "rum_pageviews_month", "heartbeats". */
 export interface TenantInfo {
   tenantId: string;
-  name: string;
+  email: string;
   tier: TenantTier;
-  quotas: TenantQuotas;
+  quotas: Record<string, QuotaUsage>;
 }
 
-/** Paginated list envelope. */
-export interface Page<T> {
-  items: T[];
-  total: number;
+/** Session issued by POST /v1/login (email/password → 7-day HS256 JWT). */
+export interface LoginSession {
+  token: string;
+  tenantId: string;
+  email: string;
+  tier: TenantTier;
+  name: string;
+  /** Seconds until the token expires. */
+  expiresIn: number;
+}
+
+/** Verified identity echo (GET /v1/session with Bearer token). */
+export interface SessionInfo {
+  authenticated: boolean;
+  tenantId: string;
+  email: string;
+  tier: TenantTier;
+  name: string;
+}
+
+/** Tenant dashboard overview (GET /v1/overview). */
+export interface Overview {
+  monitors: { total: number; up: number; down: number; paused: number; pending: number };
+  incidentsOpen: number;
+  /** Recent uptime percentage; null before any probe has run. */
+  uptimePct24h: number | null;
 }
