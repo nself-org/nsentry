@@ -54,12 +54,27 @@ make health                 # verify Hasura / auth are up
 Then point the mobile app at `http://localhost:8080` (Settings → Custom endpoint;
 use your machine's LAN IP on a real device).
 
+## Down alerts (push)
+
+Signed in against a real backend, the app registers its Expo push token via
+`POST /v1/push/register`. That gateway route is still rolling out — until it
+lands the app shows "Push alerts coming soon" (Settings) and falls back to a
+**local notification** when a refresh reveals a monitor went down. Tapping
+either notification deep-links to the monitor (`nsentry://monitor/{id}`).
+
 ## Development
 
 ```bash
 make mobile-ci-local   # lint + typecheck + test (same gate as CI)
 make client-ci-local   # packages/client lint + typecheck + test
+make mobile-export     # expo export bundle check
+
+# Opt-in live-gateway smoke (creates a throwaway tenant on the SaaS):
+cd packages/client && NSENTRY_LIVE_E2E=1 pnpm vitest run live-smoke
 ```
+
+Store builds: see the [Store Readiness](../../wiki/Store-Readiness) wiki page
+(EAS profiles in `apps/mobile/eas.json`; `eas init` still pending — honest TODO).
 
 ## Docs
 

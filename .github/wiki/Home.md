@@ -8,6 +8,7 @@ incidents, and alerting built on nSelf.
 - [Getting Started](Getting-Started) — run the app + local backend
 - [Architecture](Architecture) — three-surface model, repo layout, data flow
 - [API Client](API-Client) — `@nself/nsentry-client` usage and contract
+- [Store Readiness](Store-Readiness) — icons, EAS builds, screenshot plan
 
 ## The three surfaces
 

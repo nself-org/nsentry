@@ -7,6 +7,13 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "scheme": "nsentry",
+    "icon": "./assets/icon.png",
+    "primaryColor": "#5B9DFF",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#030712"
+    },
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
@@ -17,13 +24,25 @@
     },
     "android": {
       "package": "dev.nself.nsentry",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#030712"
+      },
       "permissions": ["NOTIFICATIONS"]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-secure-store",
       [
         "expo-notifications",
-        { "color": "#6366F1", "sounds": [], "mode": "production" }
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#5B9DFF",
+          "sounds": [],
+          "mode": "production"
+        }
       ]
     ],
     "extra": {
