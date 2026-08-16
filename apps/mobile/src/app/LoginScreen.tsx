@@ -7,7 +7,7 @@
  * Outputs: authenticated session or demo session.
  * Constraints: never logs credentials; custom URL normalized in lib/config.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -30,6 +30,28 @@ export function LoginScreen({ auth }: Props) {
   const [mode, setMode] = useState<Exclude<EndpointMode, 'demo'>>('saas');
   const [method, setMethod] = useState<'password' | 'apikey'>('password');
   const [customUrl, setCustomUrl] = useState('');
+  // Seeded once from the persisted endpoint; user edits after that must win.
+  const seededFromPersisted = useRef(false);
+
+  // Preselect the endpoint the user last chose.
+  //
+  // Settings' "switch endpoint" flow signs the user out and persists the new
+  // target via setEndpointConfig() specifically "so LoginScreen preselects it".
+  // That only works if this screen reads it back — previously it initialised
+  // unconditionally to 'saas'/'' , so a self-host user was bounced to a login
+  // screen defaulted to SaaS with an empty URL field and had to retype their
+  // server address on every sign-in. auth.endpoint arrives asynchronously (it is
+  // null while useAuth loads), hence an effect rather than lazy useState init.
+  useEffect(() => {
+    if (seededFromPersisted.current) return;
+    const persisted = auth.endpoint;
+    if (!persisted || persisted.mode === 'demo') return;
+    seededFromPersisted.current = true;
+    setMode(persisted.mode);
+    if (persisted.mode === 'custom' && persisted.customUrl) {
+      setCustomUrl(persisted.customUrl);
+    }
+  }, [auth.endpoint]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [apiKey, setApiKey] = useState('');
