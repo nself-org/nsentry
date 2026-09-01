@@ -2,6 +2,7 @@
   "name": "nsentry",
   "private": true,
   "version": "0.1.0",
+  "license": "MIT",
   "packageManager": "pnpm@10.30.1",
   "description": "ɳSentry monorepo workspace root — mobile app + API client",
   "pnpm": {
