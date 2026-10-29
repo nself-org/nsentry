@@ -7,6 +7,13 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Pinned nself-org/packages commit. pnpm-lock.yaml records the specifiers of the
+# sibling ../packages/@nself/* manifests, so the lockfile is only valid for this
+# exact commit. Bump NSELF_PACKAGES_REF and regenerate pnpm-lock.yaml together
+# (checkout packages at the new sha, then `pnpm install --lockfile-only`).
+env:
+  NSELF_PACKAGES_REF: 12d7adc98b03c38c305942b8d8251a46115da670
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -31,6 +38,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: nself-org/packages
+          ref: ${{ env.NSELF_PACKAGES_REF }}
           token: ${{ secrets.NSELF_PACKAGES_TOKEN }}
           path: _nself_packages
           persist-credentials: false
@@ -84,6 +92,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: nself-org/packages
+          ref: ${{ env.NSELF_PACKAGES_REF }}
           token: ${{ secrets.NSELF_PACKAGES_TOKEN }}
           path: _nself_packages
           persist-credentials: false
