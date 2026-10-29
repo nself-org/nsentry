@@ -9,15 +9,18 @@
 # for internal dev). nself-audit is Security-Always-Free (no key needed).
 
 app: nsentry
-display_name: "ɳSentry"
-version: "0.1.0"
+cli_min_version: 1.4.15
 bundle: sentry         # pro bundle — license key required for pro plugins
-tier: pro
+
+# Keys the nself CLI does not read are x- extension keys (contract:config.nself-yaml).
+x-display_name: "ɳSentry"
+x-version: "0.1.0"
+x-tier: pro
 
 # auth_mode: bundled — this stack runs its own hasura-auth (local-first dev).
 # The hosted SaaS runs auth_mode: external against the platform auth
 # (same pattern as ntask; see ntask/backend/nself.yaml for full docs).
-auth_mode: bundled
+x-auth_mode: bundled
 
 plugins:
   free:
@@ -38,7 +41,7 @@ plugins:
     - nself-crash             # 3841 — mobile/native crash reporting
     - nself-anomaly           # 3842 — statistical anomaly detection
 
-services:
+x-services:
   postgres:
     version: "16"
     db: nsentry
